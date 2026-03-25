@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import String, Boolean, Text, Integer, ForeignKey, DateTime
+from sqlalchemy import String, Boolean, Text, Integer, Float, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 
@@ -10,141 +10,186 @@ class User(db.Model):
     __tablename__ = "user"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
-    full_name: Mapped[str] = mapped_column(String(100), nullable=True)
-    bio: Mapped[str] = mapped_column(Text, nullable=True)
-    profile_picture_url: Mapped[str] = mapped_column(String(255), nullable=True)
+    first_name: Mapped[str] = mapped_column(String(50), nullable=True)
+    last_name: Mapped[str] = mapped_column(String(50), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean(), default=True, nullable=False)
-    is_private: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    posts: Mapped[list["Post"]] = relationship("Post", back_populates="author")
-    comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="author")
-    likes: Mapped[list["Like"]] = relationship("Like", back_populates="user")
-    followers: Mapped[list["Follower"]] = relationship(
-        "Follower", foreign_keys="Follower.followed_id", back_populates="followed"
-    )
-    following: Mapped[list["Follower"]] = relationship(
-        "Follower", foreign_keys="Follower.follower_id", back_populates="follower"
-    )
+    favorite_characters: Mapped[list["FavoriteCharacter"]] = relationship("FavoriteCharacter", back_populates="user")
+    favorite_planets: Mapped[list["FavoritePlanet"]] = relationship("FavoritePlanet", back_populates="user")
+    favorite_vehicles: Mapped[list["FavoriteVehicle"]] = relationship("FavoriteVehicle", back_populates="user")
 
     def serialize(self):
         return {
             "id": self.id,
             "username": self.username,
             "email": self.email,
-            "full_name": self.full_name,
-            "bio": self.bio,
-            "profile_picture_url": self.profile_picture_url,
-            "is_private": self.is_private,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "is_active": self.is_active,
             "created_at": self.created_at.isoformat(),
         }
 
 
-class Post(db.Model):
-    __tablename__ = "post"
+class Planet(db.Model):
+    __tablename__ = "planet"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    climate: Mapped[str] = mapped_column(String(100), nullable=True)
+    terrain: Mapped[str] = mapped_column(String(100), nullable=True)
+    diameter: Mapped[int] = mapped_column(Integer, nullable=True)
+    rotation_period: Mapped[int] = mapped_column(Integer, nullable=True)
+    orbital_period: Mapped[int] = mapped_column(Integer, nullable=True)
+    gravity: Mapped[str] = mapped_column(String(50), nullable=True)
+    population: Mapped[int] = mapped_column(Integer, nullable=True)
+    surface_water: Mapped[float] = mapped_column(Float, nullable=True)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+
+    characters: Mapped[list["Character"]] = relationship("Character", back_populates="homeworld")
+    favorited_by: Mapped[list["FavoritePlanet"]] = relationship("FavoritePlanet", back_populates="planet")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "climate": self.climate,
+            "terrain": self.terrain,
+            "diameter": self.diameter,
+            "rotation_period": self.rotation_period,
+            "orbital_period": self.orbital_period,
+            "gravity": self.gravity,
+            "population": self.population,
+            "surface_water": self.surface_water,
+            "description": self.description,
+        }
+
+
+class Character(db.Model):
+    __tablename__ = "character"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    birth_year: Mapped[str] = mapped_column(String(20), nullable=True)
+    gender: Mapped[str] = mapped_column(String(20), nullable=True)
+    height: Mapped[int] = mapped_column(Integer, nullable=True)       # in cm
+    mass: Mapped[float] = mapped_column(Float, nullable=True)         # in kg
+    skin_color: Mapped[str] = mapped_column(String(50), nullable=True)
+    eye_color: Mapped[str] = mapped_column(String(50), nullable=True)
+    hair_color: Mapped[str] = mapped_column(String(50), nullable=True)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    homeworld_id: Mapped[int] = mapped_column(ForeignKey("planet.id"), nullable=True)
+
+    homeworld: Mapped["Planet"] = relationship("Planet", back_populates="characters")
+    favorited_by: Mapped[list["FavoriteCharacter"]] = relationship("FavoriteCharacter", back_populates="character")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "birth_year": self.birth_year,
+            "gender": self.gender,
+            "height": self.height,
+            "mass": self.mass,
+            "skin_color": self.skin_color,
+            "eye_color": self.eye_color,
+            "hair_color": self.hair_color,
+            "description": self.description,
+            "homeworld_id": self.homeworld_id,
+        }
+
+
+class Vehicle(db.Model):
+    __tablename__ = "vehicle"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    model: Mapped[str] = mapped_column(String(100), nullable=True)
+    manufacturer: Mapped[str] = mapped_column(String(100), nullable=True)
+    vehicle_class: Mapped[str] = mapped_column(String(50), nullable=True)
+    length: Mapped[float] = mapped_column(Float, nullable=True)       # in meters
+    max_speed: Mapped[int] = mapped_column(Integer, nullable=True)    # km/h
+    crew: Mapped[int] = mapped_column(Integer, nullable=True)
+    passengers: Mapped[int] = mapped_column(Integer, nullable=True)
+    cargo_capacity: Mapped[int] = mapped_column(Integer, nullable=True)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+
+    favorited_by: Mapped[list["FavoriteVehicle"]] = relationship("FavoriteVehicle", back_populates="vehicle")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "model": self.model,
+            "manufacturer": self.manufacturer,
+            "vehicle_class": self.vehicle_class,
+            "length": self.length,
+            "max_speed": self.max_speed,
+            "crew": self.crew,
+            "passengers": self.passengers,
+            "cargo_capacity": self.cargo_capacity,
+            "description": self.description,
+        }
+
+
+class FavoriteCharacter(db.Model):
+    __tablename__ = "favorite_character"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
-    caption: Mapped[str] = mapped_column(Text, nullable=True)
-    location: Mapped[str] = mapped_column(String(100), nullable=True)
+    character_id: Mapped[int] = mapped_column(ForeignKey("character.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    author: Mapped["User"] = relationship("User", back_populates="posts")
-    media: Mapped[list["Media"]] = relationship("Media", back_populates="post")
-    comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="post")
-    likes: Mapped[list["Like"]] = relationship("Like", back_populates="post")
+    user: Mapped["User"] = relationship("User", back_populates="favorite_characters")
+    character: Mapped["Character"] = relationship("Character", back_populates="favorited_by")
 
     def serialize(self):
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "caption": self.caption,
-            "location": self.location,
+            "character_id": self.character_id,
             "created_at": self.created_at.isoformat(),
         }
 
 
-class Media(db.Model):
-    __tablename__ = "media"
+class FavoritePlanet(db.Model):
+    __tablename__ = "favorite_planet"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    post_id: Mapped[int] = mapped_column(ForeignKey("post.id"), nullable=False)
-    url: Mapped[str] = mapped_column(String(255), nullable=False)
-    media_type: Mapped[str] = mapped_column(String(10), nullable=False)  # "image" or "video"
-    order_index: Mapped[int] = mapped_column(Integer, default=0)
-
-    post: Mapped["Post"] = relationship("Post", back_populates="media")
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "post_id": self.post_id,
-            "url": self.url,
-            "media_type": self.media_type,
-            "order_index": self.order_index,
-        }
-
-
-class Comment(db.Model):
-    __tablename__ = "comment"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    post_id: Mapped[int] = mapped_column(ForeignKey("post.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
-    text: Mapped[str] = mapped_column(Text, nullable=False)
+    planet_id: Mapped[int] = mapped_column(ForeignKey("planet.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    post: Mapped["Post"] = relationship("Post", back_populates="comments")
-    author: Mapped["User"] = relationship("User", back_populates="comments")
+    user: Mapped["User"] = relationship("User", back_populates="favorite_planets")
+    planet: Mapped["Planet"] = relationship("Planet", back_populates="favorited_by")
 
     def serialize(self):
         return {
             "id": self.id,
-            "post_id": self.post_id,
             "user_id": self.user_id,
-            "text": self.text,
+            "planet_id": self.planet_id,
             "created_at": self.created_at.isoformat(),
         }
 
 
-class Like(db.Model):
-    __tablename__ = "like"
+class FavoriteVehicle(db.Model):
+    __tablename__ = "favorite_vehicle"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    post_id: Mapped[int] = mapped_column(ForeignKey("post.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
+    vehicle_id: Mapped[int] = mapped_column(ForeignKey("vehicle.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    post: Mapped["Post"] = relationship("Post", back_populates="likes")
-    user: Mapped["User"] = relationship("User", back_populates="likes")
+    user: Mapped["User"] = relationship("User", back_populates="favorite_vehicles")
+    vehicle: Mapped["Vehicle"] = relationship("Vehicle", back_populates="favorited_by")
 
     def serialize(self):
         return {
             "id": self.id,
-            "post_id": self.post_id,
             "user_id": self.user_id,
-            "created_at": self.created_at.isoformat(),
-        }
-
-
-class Follower(db.Model):
-    __tablename__ = "follower"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    follower_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
-    followed_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-    follower: Mapped["User"] = relationship("User", foreign_keys=[follower_id], back_populates="following")
-    followed: Mapped["User"] = relationship("User", foreign_keys=[followed_id], back_populates="followers")
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "follower_id": self.follower_id,
-            "followed_id": self.followed_id,
+            "vehicle_id": self.vehicle_id,
             "created_at": self.created_at.isoformat(),
         }
